@@ -4,9 +4,9 @@ These are complete, tested starting points for implementing
 `passwordless-auth.store/AuthStore`. They are application code, not database dependencies
 of Passwordless Auth:
 
-- [`passwordless-auth.examples.postgres-store`](passwordless-auth/examples/postgres_store.clj) uses a
+- [`passwordless-auth.examples.postgres-store`](passwordless_auth/examples/postgres_store.clj) uses a
   PostgreSQL transaction and `SELECT ... FOR UPDATE`.
-- [`passwordless-auth.examples.sqlite-store`](passwordless-auth/examples/sqlite_store.clj) uses guarded
+- [`passwordless-auth.examples.sqlite-store`](passwordless_auth/examples/sqlite_store.clj) uses guarded
   compare-and-set updates because SQLite has no row-level `FOR UPDATE` lock.
 
 Copy the relevant namespace into the application and adjust it. Do not depend

@@ -6,11 +6,11 @@
    [next.jdbc :as jdbc]))
 
 (def ^:private test-url
-  (System/getenv "BEVIS_TEST_POSTGRES_URL"))
+  (System/getenv "PASSWORDLESS_AUTH_TEST_POSTGRES_URL"))
 
 (deftest ^:integration postgres-pattern-obeys-store-contract
   (if-not test-url
-    (is true "Set BEVIS_TEST_POSTGRES_URL to run the PostgreSQL pattern test")
+    (is true "Set PASSWORDLESS_AUTH_TEST_POSTGRES_URL to run the PostgreSQL pattern test")
     (let [datasource (jdbc/get-datasource {:jdbcUrl test-url})]
       (postgres-store/create-schema! datasource)
       (jdbc/execute! datasource ["TRUNCATE auth_sessions, auth_challenges"])
