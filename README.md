@@ -1,6 +1,6 @@
-# bevis
+# passwordless-auth
 
-`bevis` 0.2.0 is a small, storage-agnostic Clojure library for
+`passwordless-auth` 0.3.0 is a small, storage-agnostic Clojure library for
 passwordless authentication:
 
 ```text
@@ -15,8 +15,8 @@ Version 0.x is a pilot API. Pin consumers to a full Git commit, not a branch:
 
 ```clojure
 {:deps
- {io.github.flakstad/bevis
-  {:git/url "https://github.com/flakstad/bevis.git"
+ {io.github.flakstad/passwordless-auth
+  {:git/url "https://github.com/flakstad/passwordless-auth.git"
    :git/sha "<full-40-character-sha>"}}}
 ```
 
@@ -26,10 +26,10 @@ from the command line or an uncommitted developer alias.
 ## Magic-link flow
 
 ```clojure
-(require '[bevis.challenge :as challenge]
-         '[bevis.session :as session]
-         '[bevis.ring :as auth-ring]
-         '[bevis.store :as store])
+(require '[passwordless-auth.challenge :as challenge]
+         '[passwordless-auth.session :as session]
+         '[passwordless-auth.ring :as auth-ring]
+         '[passwordless-auth.store :as store])
 
 (defn issue-magic-link!
   [auth-store {:keys [account-id email public-url send-login-link!]}]
@@ -70,8 +70,8 @@ record. A verified result contains a sanitized challenge and no proof hash.
 ## One-time-code flow
 
 ```clojure
-(require '[bevis.challenge :as challenge]
-         '[bevis.store :as store])
+(require '[passwordless-auth.challenge :as challenge]
+         '[passwordless-auth.store :as store])
 
 (defn issue-code!
   [auth-store {:keys [identity destination otp-hmac-key send-code!]}]
@@ -101,8 +101,8 @@ attempts under the same lock/CAS used for successful consumption.
 ## Sessions
 
 ```clojure
-(require '[bevis.session :as session]
-         '[bevis.store :as store])
+(require '[passwordless-auth.session :as session]
+         '[passwordless-auth.store :as store])
 
 (defn authenticated-subject
   [auth-store cookie-value now]
@@ -122,11 +122,11 @@ attempts under the same lock/CAS used for successful consumption.
 
 ## Store conformance
 
-An application implements the seven methods in `bevis.store/AuthStore`.
+An application implements the seven methods in `passwordless-auth.store/AuthStore`.
 Normal application code and the conformance suite call the same protocol:
 
 ```clojure
-(require '[bevis.conformance :as auth-test]
+(require '[passwordless-auth.conformance :as auth-test]
          '[your-app.auth-store :as auth-store])
 
 (defn assert-auth-store-conformance!
@@ -143,12 +143,12 @@ include schema, row conversion, atomic verification, and transaction patterns.
 
 ## Public namespaces
 
-- `bevis.secret` — generated credentials, versioned hashes, compatibility hashes.
-- `bevis.challenge` — issue, select, verify, and apply explicit transitions.
-- `bevis.session` — issue and classify persisted sessions.
-- `bevis.store` — the explicit seven-operation persistence protocol.
-- `bevis.policy` — a small issuance-count decision primitive.
-- `bevis.ring` — Set-Cookie values and conservative local return paths.
-- `bevis.conformance` — reusable AuthStore assertions.
+- `passwordless-auth.secret` — generated credentials, versioned hashes, compatibility hashes.
+- `passwordless-auth.challenge` — issue, select, verify, and apply explicit transitions.
+- `passwordless-auth.session` — issue and classify persisted sessions.
+- `passwordless-auth.store` — the explicit seven-operation persistence protocol.
+- `passwordless-auth.policy` — a small issuance-count decision primitive.
+- `passwordless-auth.ring` — Set-Cookie values and conservative local return paths.
+- `passwordless-auth.conformance` — reusable AuthStore assertions.
 
 Run the suite with `clojure -M:test`.

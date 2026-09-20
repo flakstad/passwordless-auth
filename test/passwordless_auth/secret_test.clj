@@ -1,5 +1,5 @@
-(ns bevis.secret-test
-  (:require [bevis.secret :as secret]
+(ns passwordless-auth.secret-test
+  (:require [passwordless-auth.secret :as secret]
             [clojure.test :refer [deftest is]]))
 
 (deftest secure-token-shapes

@@ -1,6 +1,6 @@
-(ns bevis.conformance-test
-  (:require [bevis.conformance :as conformance]
-            [bevis.test-support :as support]
+(ns passwordless-auth.conformance-test
+  (:require [passwordless-auth.conformance :as conformance]
+            [passwordless-auth.test-support :as support]
             [clojure.test :refer [deftest]]))
 
 (deftest in-memory-store-obeys-challenge-contract

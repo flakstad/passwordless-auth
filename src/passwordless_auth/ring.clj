@@ -1,4 +1,4 @@
-(ns bevis.ring
+(ns passwordless-auth.ring
   (:require [clojure.string :as str]))
 
 (def ^:private same-sites #{:strict :lax :none})

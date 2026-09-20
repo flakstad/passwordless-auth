@@ -1,6 +1,6 @@
-(ns bevis.test-support
-  (:require [bevis.challenge :as challenge]
-            [bevis.store :as store]))
+(ns passwordless-auth.test-support
+  (:require [passwordless-auth.challenge :as challenge]
+            [passwordless-auth.store :as store]))
 
 (defrecord MemoryStore [challenges sessions lock]
   store/AuthStore

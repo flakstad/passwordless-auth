@@ -1,29 +1,28 @@
-(ns bevis.examples.postgres-store
-  "Complete next.jdbc/PostgreSQL AuthStore pattern intended for copying.
+(ns passwordless-auth.examples.sqlite-store
+  "Complete next.jdbc/SQLite AuthStore pattern intended for copying.
 
-  Replace the EDN identity/metadata codec and table names to match the
-  application. Runtime PostgreSQL and next.jdbc dependencies are application
-  dependencies, not Bevis dependencies."
+  This implementation uses guarded updates rather than relying on SQLite row
+  locks. Replace the EDN identity/metadata codec and table names as needed."
   (:require
-   [bevis.challenge :as challenge]
-   [bevis.store :as store]
+   [passwordless-auth.challenge :as challenge]
+   [passwordless-auth.store :as store]
    [clojure.edn :as edn]
    [clojure.string :as str]
    [next.jdbc :as jdbc]
    [next.jdbc.result-set :as rs])
   (:import
-   (java.sql Timestamp)
-   (java.time Instant OffsetDateTime ZoneOffset)))
+   (java.time Instant)
+   (java.util UUID)))
 
 (def schema-statements
   ["CREATE TABLE IF NOT EXISTS auth_challenges (
-       id UUID PRIMARY KEY,
+       id TEXT PRIMARY KEY,
        identity_edn TEXT NOT NULL,
        method TEXT NOT NULL,
        proof_hash TEXT NOT NULL,
-       created_at TIMESTAMPTZ NOT NULL,
-       expires_at TIMESTAMPTZ NOT NULL,
-       consumed_at TIMESTAMPTZ,
+       created_at TEXT NOT NULL,
+       expires_at TEXT NOT NULL,
+       consumed_at TEXT,
        failed_attempt_count INTEGER NOT NULL,
        max_attempts INTEGER NOT NULL,
        metadata_edn TEXT NOT NULL
@@ -31,12 +30,12 @@
    "CREATE UNIQUE INDEX IF NOT EXISTS auth_challenges_method_proof_hash
       ON auth_challenges(method, proof_hash)"
    "CREATE TABLE IF NOT EXISTS auth_sessions (
-       id UUID PRIMARY KEY,
+       id TEXT PRIMARY KEY,
        subject_edn TEXT NOT NULL,
        credential_hash TEXT NOT NULL UNIQUE,
-       created_at TIMESTAMPTZ NOT NULL,
-       expires_at TIMESTAMPTZ NOT NULL,
-       revoked_at TIMESTAMPTZ,
+       created_at TEXT NOT NULL,
+       expires_at TEXT NOT NULL,
+       revoked_at TEXT,
        metadata_edn TEXT NOT NULL
      )"])
 
@@ -52,19 +51,18 @@
   (edn/read-string (str value)))
 
 (defn- ->db-time [value]
-  (some-> value (OffsetDateTime/ofInstant ZoneOffset/UTC)))
+  (some-> value str))
 
 (defn- ->instant [value]
-  (cond
-    (nil? value) nil
-    (instance? Instant value) value
-    (instance? OffsetDateTime value) (.toInstant ^OffsetDateTime value)
-    (instance? Timestamp value) (.toInstant ^Timestamp value)
-    :else (throw (ex-info "unsupported PostgreSQL timestamp" {:value value}))))
+  (some-> value str Instant/parse))
+
+(defn- ->uuid [value]
+  (when value
+    (if (instance? UUID value) value (UUID/fromString (str value)))))
 
 (defn- challenge-row [row]
   (when row
-    {:id (:id row)
+    {:id (->uuid (:id row))
      :identity (decode-edn (:identity-edn row))
      :method (keyword (:method row))
      :proof-hash (:proof-hash row)
@@ -77,7 +75,7 @@
 
 (defn- session-row [row]
   (when row
-    {:id (:id row)
+    {:id (->uuid (:id row))
      :subject (decode-edn (:subject-edn row))
      :credential-hash (:credential-hash row)
      :created-at (->instant (:created-at row))
@@ -95,7 +93,7 @@
        (id, identity_edn, method, proof_hash, created_at, expires_at,
         consumed_at, failed_attempt_count, max_attempts, metadata_edn)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-    (:id record)
+    (str (:id record))
     (encode-edn (:identity record))
     (name (:method record))
     (:proof-hash record)
@@ -107,49 +105,55 @@
     (encode-edn (:metadata record))])
   record)
 
-(defn- select-challenge [connectable selector lock?]
-  (let [suffix (if lock? " FOR UPDATE" "")
-        [where value] (if-let [id (:id selector)]
-                        ["id = ?" id]
+(defn- select-challenge [connectable selector]
+  (let [[where value] (if-let [id (:id selector)]
+                        ["id = ?" (str id)]
                         ["proof_hash = ?" (:proof-hash selector)])]
     (challenge-row
      (jdbc/execute-one!
       connectable
-      [(str "SELECT * FROM auth_challenges WHERE method = ? AND " where suffix)
+      [(str "SELECT * FROM auth_challenges WHERE method = ? AND " where)
        (name (:method selector)) value]
       query-options))))
 
-(defn- verify-in-transaction! [tx {:keys [selector] :as request}]
-  (let [record (select-challenge tx selector true)
-        result (challenge/verify record request)
-        transition (:transition result)
-        updated (case (:op transition)
-                  :consume
-                  (jdbc/execute-one!
-                   tx
-                   ["UPDATE auth_challenges SET consumed_at = ?
-                     WHERE id = ? AND consumed_at IS NULL
-                       AND failed_attempt_count = ?"
-                    (->db-time (:consumed-at transition))
-                    (:id record)
-                    (:failed-attempt-count record)])
+(defn- apply-transition! [connectable record transition]
+  (case (:op transition)
+    :consume
+    (:next.jdbc/update-count
+     (jdbc/execute-one!
+      connectable
+      ["UPDATE auth_challenges SET consumed_at = ?
+        WHERE id = ? AND consumed_at IS NULL
+          AND failed_attempt_count = ? AND expires_at = ?"
+       (->db-time (:consumed-at transition))
+       (str (:id record))
+       (:failed-attempt-count record)
+       (->db-time (:expires-at record))]))
 
-                  :record-failure
-                  (jdbc/execute-one!
-                   tx
-                   ["UPDATE auth_challenges SET failed_attempt_count = ?
-                     WHERE id = ? AND consumed_at IS NULL
-                       AND failed_attempt_count = ?"
-                    (:failed-attempt-count transition)
-                    (:id record)
-                    (:failed-attempt-count record)])
+    :record-failure
+    (:next.jdbc/update-count
+     (jdbc/execute-one!
+      connectable
+      ["UPDATE auth_challenges SET failed_attempt_count = ?
+        WHERE id = ? AND consumed_at IS NULL
+          AND failed_attempt_count = ? AND expires_at = ?"
+       (:failed-attempt-count transition)
+       (str (:id record))
+       (:failed-attempt-count record)
+       (->db-time (:expires-at record))]))
 
-                  nil nil)]
-    (when (and transition (not= 1 (:next.jdbc/update-count updated)))
-      (throw (ex-info "challenge transition lost its atomic guard"
-                      {:challenge-id (:id record)
-                       :transition (:op transition)})))
-    result))
+    nil 0))
+
+(defn- verify-with-cas! [connectable {:keys [selector] :as request}]
+  (loop []
+    (let [record (select-challenge connectable selector)
+          result (challenge/verify record request)
+          transition (:transition result)]
+      (if-not transition
+        result
+        (if (= 1 (apply-transition! connectable record transition))
+          result
+          (recur))))))
 
 (defn- insert-session-row! [connectable record]
   (jdbc/execute-one!
@@ -158,7 +162,7 @@
        (id, subject_edn, credential_hash, created_at, expires_at,
         revoked_at, metadata_edn)
      VALUES (?, ?, ?, ?, ?, ?, ?)"
-    (:id record)
+    (str (:id record))
     (encode-edn (:subject record))
     (:credential-hash record)
     (->db-time (:created-at record))
@@ -167,7 +171,7 @@
     (encode-edn (:metadata record))])
   record)
 
-(defrecord PostgresAuthStore [connectable transaction?]
+(defrecord SQLiteAuthStore [connectable]
   store/AuthStore
 
   (insert-challenge! [_ record]
@@ -176,14 +180,11 @@
   (load-challenge [_ id]
     (challenge-row
      (jdbc/execute-one! connectable
-                        ["SELECT * FROM auth_challenges WHERE id = ?" id]
+                        ["SELECT * FROM auth_challenges WHERE id = ?" (str id)]
                         query-options)))
 
   (verify-challenge! [_ request]
-    (if transaction?
-      (verify-in-transaction! connectable request)
-      (jdbc/with-transaction [tx connectable]
-        (verify-in-transaction! tx request))))
+    (verify-with-cas! connectable request))
 
   (insert-session! [_ record]
     (insert-session-row! connectable record))
@@ -202,7 +203,7 @@
   (load-session [_ id]
     (session-row
      (jdbc/execute-one! connectable
-                        ["SELECT * FROM auth_sessions WHERE id = ?" id]
+                        ["SELECT * FROM auth_sessions WHERE id = ?" (str id)]
                         query-options)))
 
   (revoke-session! [_ id revoked-at]
@@ -212,17 +213,9 @@
          connectable
          ["UPDATE auth_sessions SET revoked_at = COALESCE(revoked_at, ?)
            WHERE id = ?"
-          (->db-time revoked-at) id])))))
+          (->db-time revoked-at) (str id)])))))
 
-(defn postgres-store
-  "Store backed by a datasource. verify-challenge! opens its own transaction."
-  [datasource]
-  (->PostgresAuthStore datasource false))
-
-(defn transaction-store
-  "Store backed by an existing next.jdbc transaction.
-
-  Use this when challenge verification and application work must commit in the
-  same transaction. The application remains the transaction owner."
-  [transaction]
-  (->PostgresAuthStore transaction true))
+(defn sqlite-store
+  "Returns a store for a SQLite datasource or existing next.jdbc transaction."
+  [connectable]
+  (->SQLiteAuthStore connectable))

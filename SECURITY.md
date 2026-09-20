@@ -24,7 +24,7 @@ attempts, and issuance throttling remain required because HMAC does not stop
 online guessing.
 
 Hash strings carry an explicit `v1:sha256:` or `v1:hmac-sha256:` prefix.
-`bevis.secret/matches?` uses `MessageDigest/isEqual` for in-process digest
+`passwordless-auth.secret/matches?` uses `MessageDigest/isEqual` for in-process digest
 comparison. High-entropy magic-link/session verification should normally hash
 then query by equality, avoiding plaintext comparison entirely.
 
@@ -50,7 +50,7 @@ membership policy required by their domain.
 
 ## Issuance and enumeration
 
-`bevis.policy/issuance-decision` consumes counts supplied from durable storage.
+`passwordless-auth.policy/issuance-decision` consumes counts supplied from durable storage.
 The recommended starting limits are five challenges per normalized identity and
 twenty per client key in a rolling hour. Applications choose trusted client
 keys, perform race-safe counting/insert decisions, and may use stricter limits.
@@ -63,7 +63,7 @@ opaque identity.
 
 ## Cookies
 
-`bevis.ring/session-cookie` defaults to `Secure`, `HttpOnly`, `SameSite=Strict`,
+`passwordless-auth.ring/session-cookie` defaults to `Secure`, `HttpOnly`, `SameSite=Strict`,
 and `Path=/`. The default name is `__Host-session`. A `__Host-` name is rejected
 if `Secure` or `Path=/` is removed. `SameSite=None` is rejected without Secure.
 Local HTTP development must deliberately choose a non-`__Host-` name and set

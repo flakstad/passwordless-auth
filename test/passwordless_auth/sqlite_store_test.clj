@@ -1,7 +1,7 @@
-(ns bevis.sqlite-store-test
+(ns passwordless-auth.sqlite-store-test
   (:require
-   [bevis.conformance :as conformance]
-   [bevis.examples.sqlite-store :as sqlite-store]
+   [passwordless-auth.conformance :as conformance]
+   [passwordless-auth.examples.sqlite-store :as sqlite-store]
    [clojure.test :refer [deftest is]]
    [next.jdbc :as jdbc])
   (:import
@@ -9,7 +9,7 @@
    (java.nio.file.attribute FileAttribute)))
 
 (defn- with-sqlite-store [f]
-  (let [^Path path (Files/createTempFile "bevis-" ".sqlite"
+  (let [^Path path (Files/createTempFile "passwordless-auth-" ".sqlite"
                                          (make-array FileAttribute 0))
         datasource (jdbc/get-datasource
                     {:jdbcUrl (str "jdbc:sqlite:" path

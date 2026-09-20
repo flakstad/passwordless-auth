@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 - 2026-09-20
+
+- Rename the project and Git dependency coordinate from `bevis` to
+  `passwordless-auth`.
+- Rename public namespaces from `bevis.*` to `passwordless-auth.*` without
+  changing authentication behavior or the persistence contract.
+
 ## 0.2.0 - 2026-09-18
 
 - Replace the function-map persistence boundary with `bevis.store/AuthStore`.

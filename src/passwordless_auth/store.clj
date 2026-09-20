@@ -1,4 +1,4 @@
-(ns bevis.store
+(ns passwordless-auth.store
   "Persistence contract for challenges and sessions.")
 
 (defprotocol AuthStore
@@ -14,7 +14,7 @@
     [store request]
     "Atomically loads, verifies, and transitions a challenge.
 
-    Implementations must call bevis.challenge/verify against the current
+    Implementations must call passwordless-auth.challenge/verify against the current
     record and persist its transition under one row lock or compare-and-set
     guard. Two concurrent calls must not both return :verified.")
 

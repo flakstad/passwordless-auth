@@ -38,7 +38,7 @@ The completed pilot kept both forms of legacy state readable: the adapter
 queries the versioned and legacy SHA-256 digest for outstanding links and
 sessions. New rows write only versioned hashes. Logout now records revocation,
 and rate-limited issuance returns the existing generic success page without
-sending mail. See Byggeradar's `docs/bevis-migration.md` for its exact
+sending mail. See Byggeradar's `docs/passwordless-auth-migration.md` for its exact
 schema and rollout notes.
 
 ## Pilot API review
@@ -76,8 +76,8 @@ Plan:
 2. Map account UUIDs to opaque `{:account-id ...}` identity/subject values.
 3. Keep the existing advisory transaction lock and five-per-hour identity
    policy; add a durable client-key count/limit. Feed both counts into
-   `bevis.policy/issuance-decision`.
-4. Move only token/code/session mechanics to bevis. Keep normalization,
+   `passwordless-auth.policy/issuance-decision`.
+4. Move only token/code/session mechanics to passwordless-auth. Keep normalization,
    account creation, pruning/statistics, routes, pending-watch cookie behavior,
    email copy/transport, and authorization in Fiskeriradar.
 5. Preserve the 30-day cookie `Max-Age`, strict cookie naming, same-origin
@@ -109,8 +109,8 @@ Plan:
    insertion in one transaction.
 4. Add durable identity/client issuance counts and the recommended initial
    limits before sending/queueing mail.
-5. Retain the current CSRF model initially; bevis does not absorb it.
-   A later change may hash the CSRF token at rest using `bevis.secret`, but that
+5. Retain the current CSRF model initially; passwordless-auth does not absorb it.
+   A later change may hash the CSRF token at rest using `passwordless-auth.secret`, but that
    is separate from this migration.
 6. Run conformance plus handler/outbox tests for delivery triggering,
    verification, CSRF-protected actions, logout, account deletion, and admin

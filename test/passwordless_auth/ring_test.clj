@@ -1,5 +1,5 @@
-(ns bevis.ring-test
-  (:require [bevis.ring :as ring]
+(ns passwordless-auth.ring-test
+  (:require [passwordless-auth.ring :as ring]
             [clojure.test :refer [deftest is]]))
 
 (deftest accepts-only-conservative-local-return-paths

@@ -1,4 +1,4 @@
-(ns bevis.policy)
+(ns passwordless-auth.policy)
 
 (def recommended-identity-limit 5)
 (def recommended-client-limit 20)

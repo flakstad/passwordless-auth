@@ -1,4 +1,4 @@
-(ns bevis.time
+(ns passwordless-auth.time
   (:import
    (java.time Clock Duration Instant)))
 

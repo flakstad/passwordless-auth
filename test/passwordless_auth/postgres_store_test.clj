@@ -1,7 +1,7 @@
-(ns bevis.postgres-store-test
+(ns passwordless-auth.postgres-store-test
   (:require
-   [bevis.conformance :as conformance]
-   [bevis.examples.postgres-store :as postgres-store]
+   [passwordless-auth.conformance :as conformance]
+   [passwordless-auth.examples.postgres-store :as postgres-store]
    [clojure.test :refer [deftest is]]
    [next.jdbc :as jdbc]))
 

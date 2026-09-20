@@ -1,32 +1,32 @@
-(ns bevis.conformance
+(ns passwordless-auth.conformance
   "Reusable behavioral assertions for application AuthStore implementations.
 
   These functions intentionally use clojure.test so a consumer can call them
   from its ordinary test suite without copying fixtures."
   (:require
-   [bevis.challenge :as challenge]
-   [bevis.session :as session]
-   [bevis.store :as store]
+   [passwordless-auth.challenge :as challenge]
+   [passwordless-auth.session :as session]
+   [passwordless-auth.store :as store]
    [clojure.test :refer [is testing]])
   (:import
    (java.time Duration Instant)
    (java.util UUID)))
 
 (def ^:private code-hash-key
-  "bevis-conformance-only-key-32-bytes")
+  "passwordless-auth-conformance-only-key-32-bytes")
 
 (defn assert-challenge-store
   "Exercises an AuthStore challenge implementation.
 
   Options may contain :identity when the store requires an application fixture.
 
-  verify-challenge! must select, decide with bevis.challenge/verify, and apply
+  verify-challenge! must select, decide with passwordless-auth.challenge/verify, and apply
   its transition in one row lock or CAS operation. It returns the verify result."
   ([auth-store]
    (assert-challenge-store auth-store nil))
   ([auth-store {:keys [identity]}]
    (is (satisfies? store/AuthStore auth-store)
-       "store satisfies bevis.store/AuthStore")
+       "store satisfies passwordless-auth.store/AuthStore")
    (let [now (Instant/parse "2030-01-01T10:00:00Z")
          identity (or identity
                       {:kind :conformance :id (str (UUID/randomUUID))})]
@@ -132,7 +132,7 @@
    (assert-session-store auth-store nil))
   ([auth-store {:keys [subject]}]
    (is (satisfies? store/AuthStore auth-store)
-       "store satisfies bevis.store/AuthStore")
+       "store satisfies passwordless-auth.store/AuthStore")
    (let [now (Instant/parse "2030-01-01T10:00:00Z")
          {:keys [record credential]}
          (session/issue {:subject (or subject

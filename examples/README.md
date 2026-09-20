@@ -1,16 +1,16 @@
 # Database patterns
 
 These are complete, tested starting points for implementing
-`bevis.store/AuthStore`. They are application code, not database dependencies
-of Bevis:
+`passwordless-auth.store/AuthStore`. They are application code, not database dependencies
+of Passwordless Auth:
 
-- [`bevis.examples.postgres-store`](bevis/examples/postgres_store.clj) uses a
+- [`passwordless-auth.examples.postgres-store`](passwordless-auth/examples/postgres_store.clj) uses a
   PostgreSQL transaction and `SELECT ... FOR UPDATE`.
-- [`bevis.examples.sqlite-store`](bevis/examples/sqlite_store.clj) uses guarded
+- [`passwordless-auth.examples.sqlite-store`](passwordless-auth/examples/sqlite_store.clj) uses guarded
   compare-and-set updates because SQLite has no row-level `FOR UPDATE` lock.
 
 Copy the relevant namespace into the application and adjust it. Do not depend
-on the `bevis.examples.*` namespace from production code: examples may improve
+on the `passwordless-auth.examples.*` namespace from production code: examples may improve
 without the compatibility guarantees of the core API.
 
 ## Dependencies
@@ -28,7 +28,7 @@ org.postgresql/postgresql {:mvn/version "42.7.7"}
 org.xerial/sqlite-jdbc {:mvn/version "3.50.3.0"}
 ```
 
-The version numbers are known-good examples, not Bevis constraints.
+The version numbers are known-good examples, not Passwordless Auth constraints.
 
 ## PostgreSQL
 
@@ -37,7 +37,7 @@ in `schema-statements` through the application's migration system. Construct a
 store around the datasource:
 
 ```clojure
-(require '[bevis.store :as store]
+(require '[passwordless-auth.store :as store]
          '[your-app.postgres-auth-store :as postgres-auth-store])
 
 (defn consume! [datasource request]
@@ -51,7 +51,7 @@ transaction ownership in the application and construct the transaction-bound
 variant:
 
 ```clojure
-(require '[bevis.store :as store]
+(require '[passwordless-auth.store :as store]
          '[next.jdbc :as jdbc]
          '[your-app.postgres-auth-store :as postgres-auth-store])
 
@@ -73,7 +73,7 @@ Copy `sqlite_store.clj`, change its namespace, and add the statements in
 `schema-statements` to the application's migrations:
 
 ```clojure
-(require '[bevis.store :as store]
+(require '[passwordless-auth.store :as store]
          '[your-app.sqlite-auth-store :as sqlite-auth-store])
 
 (defn consume! [datasource request]
@@ -109,12 +109,12 @@ The examples deliberately isolate the parts that normally change:
 5. Preserve the atomic implementation of `verify-challenge!`.
 6. Implement issuance-count queries and locking beside the application's rate
    limit keys; these are intentionally not part of `AuthStore`.
-7. Run both Bevis conformance functions against the real database adapter.
+7. Run both Passwordless Auth conformance functions against the real database adapter.
 
 ## Conformance test
 
 ```clojure
-(require '[bevis.conformance :as conformance]
+(require '[passwordless-auth.conformance :as conformance]
          '[your-app.auth-store :as auth-store])
 
 (defn assert-store! [datasource identity subject]

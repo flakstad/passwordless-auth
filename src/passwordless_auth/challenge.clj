@@ -1,7 +1,7 @@
-(ns bevis.challenge
+(ns passwordless-auth.challenge
   (:require
-   [bevis.secret :as secret]
-   [bevis.time :as time])
+   [passwordless-auth.secret :as secret]
+   [passwordless-auth.time :as time])
   (:import
    (java.time Duration)
    (java.util UUID)))

@@ -69,7 +69,7 @@ never returns the credential hash in its public session.
 
 ## Persistence contract
 
-Persistence implementations satisfy the explicit `bevis.store/AuthStore`
+Persistence implementations satisfy the explicit `passwordless-auth.store/AuthStore`
 protocol. One store value implements seven invariant-oriented operations; the
 contract is not a generic CRUD abstraction.
 
@@ -82,14 +82,14 @@ Challenge operations:
 ```
 
 Insertion returns the stored challenge. Loading returns the complete persisted
-record or `nil`. Verification returns a `bevis.challenge/verify` result.
+record or `nil`. Verification returns a `passwordless-auth.challenge/verify` result.
 
 `verify-challenge!` must atomically:
 
 1. select the current row using `selector`;
 2. lock it or establish an equivalent compare-and-set guard;
-3. call `bevis.challenge/verify` with the current record;
-4. apply `bevis.challenge/apply-transition`;
+3. call `passwordless-auth.challenge/verify` with the current record;
+4. apply `passwordless-auth.challenge/apply-transition`;
 5. persist that transition and return the original result.
 
 It must not commit a transition if its guard no longer matches. A PostgreSQL
@@ -124,7 +124,7 @@ existing transaction when authentication and application changes must commit
 together. The PostgreSQL example demonstrates both forms. This keeps
 transaction ownership visible without weakening the persistence contract.
 
-`bevis.conformance/assert-challenge-store` races two consumers, checks exact
+`passwordless-auth.conformance/assert-challenge-store` races two consumers, checks exact
 expiry, proof-at-rest, code attempts/lockout, success consumption, and replay.
 `assert-session-store` checks hash-at-rest, invalid/active/expired status and
 revocation visibility. Stores backed by foreign keys pass `{:identity value}`
@@ -134,7 +134,7 @@ suite generates opaque defaults.
 Complete copy-and-adjust patterns live under `examples/`: PostgreSQL uses a
 transaction plus `SELECT ... FOR UPDATE`, while SQLite uses guarded updates and
 retries a lost compare-and-set. The examples are tested, but remain application
-templates so Bevis itself does not acquire JDBC or database-driver dependencies.
+templates so Passwordless Auth itself does not acquire JDBC or database-driver dependencies.
 
 ## Time and errors
 
@@ -149,14 +149,14 @@ configuration and programmer errors throw `ExceptionInfo`.
 
 The chosen boundary combines durable consumer counts with a pure core decision.
 Adapters/applications expose recent counts by identity and client key;
-`bevis.policy/issuance-decision` compares them with explicit limits. The
+`passwordless-auth.policy/issuance-decision` compares them with explicit limits. The
 consumer owns transaction isolation, response policy, and key derivation. A
 callback-based generic rate limiter was rejected because it would hide storage
 and distributed consistency without actually solving either.
 
 ## Dependencies and extension policy
 
-Core uses only Clojure and JDK crypto/time. `bevis.ring` emits header values but
+Core uses only Clojure and JDK crypto/time. `passwordless-auth.ring` emits header values but
 does not depend on Ring. New proof methods should be added only when at least
 one real consumer demonstrates distinct generation/verification semantics.
 Application-specific metadata remains opaque rather than becoming callbacks or

@@ -1,5 +1,5 @@
-(ns bevis.policy-test
-  (:require [bevis.policy :as policy]
+(ns passwordless-auth.policy-test
+  (:require [passwordless-auth.policy :as policy]
             [clojure.test :refer [deftest is]]))
 
 (deftest issuance-limits
